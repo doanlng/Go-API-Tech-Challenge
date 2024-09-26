@@ -13,7 +13,7 @@ import (
 )
 
 type CourseController struct {
-	DAO *dal.CourseDAO
+	DAO dal.CourseDao
 }
 
 func NewCourseController(conn *sql.DB) *CourseController {

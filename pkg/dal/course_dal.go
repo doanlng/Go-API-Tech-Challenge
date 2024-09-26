@@ -8,15 +8,15 @@ import (
 	"example.com/model"
 )
 
-type CourseDAO struct {
+type CourseDaoImpl struct {
 	DB *sql.DB
 }
 
-func NewCourseDAO(db *sql.DB) *CourseDAO {
-	return &CourseDAO{DB: db}
+func NewCourseDAO(db *sql.DB) CourseDao {
+	return &CourseDaoImpl{DB: db}
 }
 
-func (db *CourseDAO) Create(course *model.Course) (*model.Course, error) {
+func (db *CourseDaoImpl) Create(course *model.Course) (*model.Course, error) {
 
 	if course == nil {
 		return nil, errors.New("passed in a nil course")
@@ -39,7 +39,7 @@ func (db *CourseDAO) Create(course *model.Course) (*model.Course, error) {
 	return course, nil
 }
 
-func (db *CourseDAO) List() ([]*model.Course, error) {
+func (db *CourseDaoImpl) List() ([]*model.Course, error) {
 	const s = "SELECT * FROM course"
 
 	rows, err := db.DB.Query(s)
@@ -61,7 +61,7 @@ func (db *CourseDAO) List() ([]*model.Course, error) {
 	return c, nil
 }
 
-func (db *CourseDAO) Get(id int64) (*model.Course, error) {
+func (db *CourseDaoImpl) Get(id int64) (*model.Course, error) {
 	const s = "SELECT * FROM course WHERE id = $1 LIMIT 1"
 
 	row, err := db.DB.Query(s, id)
@@ -87,7 +87,7 @@ func (db *CourseDAO) Get(id int64) (*model.Course, error) {
 	return c, nil
 }
 
-func (db *CourseDAO) Update(c *model.Course, id int64) (*model.Course, error) {
+func (db *CourseDaoImpl) Update(c *model.Course, id int64) (*model.Course, error) {
 	const s = "UPDATE course SET name = $1 where id = $2"
 	_, err := db.DB.Exec(s, c.Name, id)
 	if err != nil {
@@ -103,7 +103,7 @@ func (db *CourseDAO) Update(c *model.Course, id int64) (*model.Course, error) {
 	return nc, nil
 }
 
-func (db *CourseDAO) Delete(id int64) (int64, error) {
+func (db *CourseDaoImpl) Delete(id int64) (int64, error) {
 	const s = "DELETE FROM course WHERE id = $1"
 	_, err := db.DB.Exec(s, id)
 	if err != nil {
