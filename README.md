@@ -103,3 +103,10 @@ Here is the schema for a `Person` object:
 - [ ] If an error is encountered by the application, an informative error message should be returned
   to the client and your application should also log details.
 - [ ] Your project should include unit tests with 80% unit test coverage.
+
+
+https://medium.com/@rseanjustice/data-access-in-go-d39d8945b078
+https://go.dev/doc/tutorial/database-access
+https://www.calhoun.io/connecting-to-a-postgresql-database-with-gos-database-sql-package/
+https://medium.com/@leeprovoost/get-lastinsertedid-when-using-postgres-and-golang-database-sql-package-ca55ea23c2d5
+https://www.sitepoint.com/get-url-parameters-with-go/

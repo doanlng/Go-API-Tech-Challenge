@@ -1,6 +1,6 @@
 package model
 
 type Course struct {
-	ID   int
-	Name string
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
