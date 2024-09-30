@@ -3,6 +3,7 @@ package dal
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 
 	"example.com/model"
@@ -44,7 +45,7 @@ func (db *CourseDaoImpl) List() ([]*model.Course, error) {
 
 	rows, err := db.DB.Query(s)
 	if err != nil {
-		log.Fatal("issue querying database")
+		log.Fatal(err)
 	}
 	defer rows.Close()
 
@@ -53,7 +54,7 @@ func (db *CourseDaoImpl) List() ([]*model.Course, error) {
 		e := &model.Course{}
 		err := rows.Scan(&e.ID, &e.Name)
 		if err != nil {
-			log.Fatal("error scanning rows")
+			log.Fatal(err)
 		}
 		c = append(c, e)
 	}
@@ -84,14 +85,23 @@ func (db *CourseDaoImpl) Get(id int64) (*model.Course, error) {
 		log.Fatal(err)
 	}
 
+	if c.ID == 0 && c.Name == "" {
+		s := fmt.Sprintf("No Course with id %d could be found", id)
+		return nil, errors.New(s)
+	}
 	return c, nil
 }
 
 func (db *CourseDaoImpl) Update(c *model.Course, id int64) (*model.Course, error) {
 	const s = "UPDATE course SET name = $1 where id = $2"
-	_, err := db.DB.Exec(s, c.Name, id)
+	result, err := db.DB.Exec(s, c.Name, id)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if res, err := result.RowsAffected(); err == nil && res == 0 {
+		s := fmt.Sprintf("Attempted to update, but Course with ID: %d could not be found", id)
+		return nil, errors.New(s)
 	}
 
 	var nc *model.Course
@@ -105,9 +115,14 @@ func (db *CourseDaoImpl) Update(c *model.Course, id int64) (*model.Course, error
 
 func (db *CourseDaoImpl) Delete(id int64) (int64, error) {
 	const s = "DELETE FROM course WHERE id = $1"
-	_, err := db.DB.Exec(s, id)
+	res, err := db.DB.Exec(s, id)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if row, err := res.RowsAffected(); err == nil && row == 0 {
+		s := fmt.Sprintf("Attempted to delete, but Course with ID: %d could not be found", id)
+		return -1, errors.New(s)
 	}
 
 	return id, err
