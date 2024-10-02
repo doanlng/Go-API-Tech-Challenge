@@ -74,20 +74,13 @@ func (db *CourseDaoImpl) Get(id int64) (*model.Course, error) {
 
 	c := &model.Course{}
 
-	for row.Next() {
+	if r := row.Next(); !r {
+		return nil, errors.New("no course could be located")
+	} else {
 		err := row.Scan(&c.ID, &c.Name)
 		if err != nil {
 			log.Fatal("error scanning rows")
 		}
-	}
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if c.ID == 0 && c.Name == "" {
-		s := fmt.Sprintf("No Course with id %d could be found", id)
-		return nil, errors.New(s)
 	}
 	return c, nil
 }
