@@ -1,4 +1,4 @@
-module example.com/dbConn
+module example.com/dbconn
 
 go 1.23.0
 

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -59,21 +60,24 @@ func (cc CourseController) Create(w http.ResponseWriter, r *http.Request) {
 	var c *model.Course
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&c); err != nil {
-		http.Error(w, "Invalid json data", http.StatusInternalServerError)
+		http.Error(w, "Invalid values passed into create course", http.StatusInternalServerError)
 	}
-
+	log.Println(c.Name)
 	if c.Name == "" {
-		http.Error(w, "Invalid values passed to create course", http.StatusInternalServerError)
+		http.Error(w, "Invalid values passed to create course", http.StatusBadRequest)
+		return
 	}
 
 	nc, err := cc.DAO.Create(c)
 	if err != nil {
 		http.Error(w, "panic at controller level for create", http.StatusInternalServerError)
+		return
 	}
 
 	result, err := json.Marshal(nc)
 	if err != nil {
 		http.Error(w, "failed to marshal newly added course to JSON", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -83,21 +87,22 @@ func (cc CourseController) Create(w http.ResponseWriter, r *http.Request) {
 
 func (cc CourseController) Get(w http.ResponseWriter, r *http.Request) {
 	idstr := chi.URLParam(r, "id")
-
 	id, err := strconv.ParseInt(idstr, 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid course ID", http.StatusBadRequest)
+		return
 	}
 
 	var c *model.Course
 	c, err = cc.DAO.Get(id)
 	if err != nil {
-		http.Error(w, "Error retrieving value at controller level", http.StatusBadRequest)
+		http.Error(w, "Course not found", http.StatusNotFound)
+		return
 	}
-
 	result, err := json.Marshal(c)
 	if err != nil {
 		http.Error(w, "failed to marshal course to JSON", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -111,22 +116,25 @@ func (cc CourseController) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(idstr, 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid course ID", http.StatusBadRequest)
+		return
 	}
 
 	var c *model.Course
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&c); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	if c.Name == "" {
-		http.Error(w, "Invalid name passed for course", http.StatusInternalServerError)
+		http.Error(w, "Invalid name passed for course", http.StatusBadRequest)
+		return
 	}
 
 	var nc *model.Course
 	nc, err = cc.DAO.Update(c, id)
 	if err != nil {
-		http.Error(w, "Error updating value at controller level", http.StatusBadRequest)
+		http.Error(w, "Course Not Found", http.StatusNotFound)
 	}
 
 	result, err := json.Marshal(nc)
@@ -145,17 +153,19 @@ func (cc CourseController) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(idstr, 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid course ID", http.StatusBadRequest)
+		return
 	}
 
 	idDel, err := cc.DAO.Delete(id)
 	if err != nil {
-		http.Error(w, "Error Deleting Course", http.StatusInternalServerError)
+		http.Error(w, "Error Finding Course To Delete", http.StatusNotFound)
+		return
 	}
 
 	confirm := fmt.Sprintf("Course with ID:%d has been deleted", idDel)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 	if err := json.NewEncoder(w).Encode(confirm); err != nil {
 		http.Error(w, "failed to encode deleted course ID to JSON", http.StatusInternalServerError)
 	}

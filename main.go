@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	dbconn "example.com/dbConn"
+	dbconn "example.com/dbconn"
 
 	"example.com/controller"
 	"github.com/go-chi/chi/v5"
@@ -15,7 +15,8 @@ func main() {
 
 	r := chi.NewRouter()
 	c := controller.NewCourseController(connection)
+	p := controller.NewPersonController(connection)
 	r.Mount("/api/course", c.Routes())
-
+	r.Mount("/api/person", p.Routes())
 	http.ListenAndServe(":8000", r)
 }
