@@ -1,7 +1,7 @@
 package dal
 
 import (
-	"example.com/model"
+	"github.com/doanlng/Go-Api-Tech-Challenge/internal/model"
 )
 
 type CourseDao interface {

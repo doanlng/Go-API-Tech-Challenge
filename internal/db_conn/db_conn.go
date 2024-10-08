@@ -1,13 +1,14 @@
 package dbconn
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 type dbConn struct{}
@@ -16,7 +17,7 @@ func NewDbConn() *dbConn {
 	return &dbConn{}
 }
 
-var db *sql.DB
+var db *gorm.DB
 
 type DBConfig struct {
 	Host     string
@@ -26,7 +27,7 @@ type DBConfig struct {
 	DBName   string
 }
 
-func (conn dbConn) Connect() *sql.DB {
+func (conn dbConn) Connect() *gorm.DB {
 	var err error
 
 	err = godotenv.Load(".env")
@@ -42,18 +43,14 @@ func (conn dbConn) Connect() *sql.DB {
 	}
 
 	// Get a database handle.
-	psqlConf := fmt.Sprintf("host=%s port=%s user=%s "+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s "+
 		"password=%s dbname=%s sslmode=disable", conf.Host, conf.Port, conf.User, conf.Password, conf.DBName)
-	db, err = sql.Open("postgres", psqlConf)
+	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	pingErr := db.Ping()
-	if pingErr != nil {
-		log.Fatal(pingErr)
-	}
 	fmt.Println("Connected!")
 
-	return db
+	return gormDB
 }

@@ -3,7 +3,7 @@ package dal
 import (
 	"errors"
 
-	"example.com/model"
+	"github.com/doanlng/Go-Api-Tech-Challenge/internal/model"
 	"github.com/stretchr/testify/mock"
 )
 

@@ -1,122 +1,88 @@
 package dal
 
 import (
-	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 
-	"example.com/model"
+	"github.com/doanlng/Go-Api-Tech-Challenge/internal/model"
+	"gorm.io/gorm"
 )
 
 type CourseDaoImpl struct {
-	DB *sql.DB
+	DB *gorm.DB
 }
 
-func NewCourseDAO(db *sql.DB) CourseDao {
+func NewCourseDAO(db *gorm.DB) CourseDao {
 	return &CourseDaoImpl{DB: db}
 }
 
 func (db *CourseDaoImpl) Create(course *model.Course) (*model.Course, error) {
 
-	if course == nil {
-		return nil, errors.New("passed in a nil course")
+	if course.Name == "" {
+		return nil, errors.New("passed in a course wtih no name")
 	}
 
-	const s = `INSERT INTO course (name) VALUES ($1) RETURNING id`
-
-	stmt, err := db.DB.Prepare(s)
-	if err != nil {
-		log.Fatal(err)
+	res := db.DB.Save(&course)
+	if res.Error != nil {
+		log.Panic("Error Creating course")
+		return nil, errors.New("Unable to create courses")
 	}
-
-	var id int64
-	err = stmt.QueryRow(course.Name).Scan(&id)
-	if err != nil {
-		log.Fatal(err)
-	}
-	course.ID = int(id)
-
 	return course, nil
 }
 
 func (db *CourseDaoImpl) List() ([]*model.Course, error) {
-	const s = "SELECT * FROM course"
+	var courses []*model.Course
+	cs := db.DB.Find(&courses)
 
-	rows, err := db.DB.Query(s)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	c := []*model.Course{}
-	for rows.Next() {
-		e := &model.Course{}
-		err := rows.Scan(&e.ID, &e.Name)
-		if err != nil {
-			log.Fatal(err)
-		}
-		c = append(c, e)
+	if cs.Error != nil {
+		return nil, errors.New("unable to pull courses")
 	}
 
-	return c, nil
+	return courses, nil
 }
 
 func (db *CourseDaoImpl) Get(id int64) (*model.Course, error) {
-	const s = "SELECT * FROM course WHERE id = $1 LIMIT 1"
-
-	row, err := db.DB.Query(s, id)
-
-	if err != nil {
-		log.Fatal(err)
+	if id <= 0 {
+		return nil, errors.New("negative ID passed")
 	}
-	defer row.Close()
-
-	c := &model.Course{}
-
-	if r := row.Next(); !r {
-		return nil, errors.New("no course could be located")
-	} else {
-		err := row.Scan(&c.ID, &c.Name)
-		if err != nil {
-			log.Fatal("error scanning rows")
-		}
+	var c = &model.Course{
+		ID: id,
+	}
+	res := db.DB.First(&c)
+	if res.Error != nil {
+		return nil, errors.New("unable to get course with ID passed")
 	}
 	return c, nil
 }
 
+// performs updates given posted ID, if posted ID doesn't exist, will upsert
 func (db *CourseDaoImpl) Update(c *model.Course, id int64) (*model.Course, error) {
-	const s = "UPDATE course SET name = $1 where id = $2"
-	result, err := db.DB.Exec(s, c.Name, id)
-	if err != nil {
-		log.Fatal(err)
+	var nc = &model.Course{
+		ID:   id,
+		Name: c.Name,
 	}
 
-	if res, err := result.RowsAffected(); err == nil && res == 0 {
-		s := fmt.Sprintf("Attempted to update, but Course with ID: %d could not be found", id)
-		return nil, errors.New(s)
+	if c.Name == "" {
+		return nil, errors.New("passed in an invalid name")
 	}
 
-	var nc *model.Course
-	nc, err = db.Get(id)
-	if err != nil {
-		log.Fatal(err)
+	res := db.DB.Save(&nc)
+	if res.Error != nil {
+		return nil, errors.New("course Update Failed")
 	}
 
 	return nc, nil
 }
 
 func (db *CourseDaoImpl) Delete(id int64) (int64, error) {
-	const s = "DELETE FROM course WHERE id = $1"
-	res, err := db.DB.Exec(s, id)
-	if err != nil {
-		log.Fatal(err)
+	var c = &model.Course{
+		ID: id,
 	}
-
-	if row, err := res.RowsAffected(); err == nil && row == 0 {
-		s := fmt.Sprintf("Attempted to delete, but Course with ID: %d could not be found", id)
-		return -1, errors.New(s)
+	res := db.DB.Delete(&c)
+	if res.Error != nil {
+		return -1, errors.New("course Delete Failed")
+	} else if res.RowsAffected == 0 {
+		return -1, errors.New("no Course was affected delete")
 	}
-
-	return id, err
+	return c.ID, nil
 }

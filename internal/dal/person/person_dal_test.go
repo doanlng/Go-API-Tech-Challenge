@@ -1,85 +1,94 @@
 package dal
 
 import (
-	"database/sql"
+	"log"
 	"testing"
 
+	"github.com/doanlng/Go-Api-Tech-Challenge/internal/model"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 func setUpTestDbAndDaoPerson() PersonDao {
 	// Create in memory database
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
-		panic(err)
+		log.Fatal("Failure in creating database for testing")
 	}
-
-	_, err = db.Exec(`
-	CREATE TABLE person
-	(
-		id         SERIAL PRIMARY KEY,
-		first_name TEXT                                          NOT NULL,
-		last_name  TEXT                                          NOT NULL,
-		type       TEXT CHECK (type IN ('professor', 'student')) NOT NULL,
-		age        INTEGER                                       NOT NULL
-	);
-
-	CREATE TABLE course
-	(
-		id   SERIAL PRIMARY KEY,
-		name TEXT NOT NULL
-	);
-	
-	INSERT INTO course (name)
-	VALUES ('Programming'),
-		   ('Databases'),
-		   ('UI Design');
-
-	INSERT INTO person (first_name, last_name, type, age)
-	VALUES ('Steve', 'Jobs', 'professor', 56),
-		   ('Jeff', 'Bezos', 'professor', 60),
-		   ('Larry', 'Page', 'student', 51),
-		   ('Bill', 'Gates', 'student', 67),
-		   ('Elon', 'Musk', 'student', 52);
-
-	CREATE TABLE person_course
-	(
-		person_id INTEGER NOT NULL,
-		course_id INTEGER NOT NULL,
-		PRIMARY KEY (person_id, course_id),
-		FOREIGN KEY (person_id) REFERENCES person (id),
-		FOREIGN KEY (course_id) REFERENCES course (id)
-	);
-	
-	INSERT INTO person_course (person_id, course_id)
-	VALUES (1, 1),
-			(1, 2),
-			(1, 3),
-			(2, 1),
-			(2, 2),
-			(2, 3),
-			(3, 1),
-			(3, 2),
-			(3, 3),
-			(4, 1),
-			(4, 2),
-			(4, 3),
-			(5, 1),
-			(5, 2),
-			(5, 3);
-    `)
-
+	err = db.AutoMigrate(&model.Person{}, &model.Course{}, &model.PersonCourse{})
 	if err != nil {
-		panic(err)
-	}
-
-	if err != nil {
-		panic(err)
+		log.Fatal("failure migrating Person schema")
 	}
 
 	dao := NewPersonDAO(db)
+
+	c1 := &model.Course{
+		Name: "C1",
+		ID:   int64(1),
+	}
+
+	c2 := &model.Course{
+		Name: "C2",
+		ID:   int64(2),
+	}
+
+	c3 := &model.Course{
+		Name: "C3",
+		ID:   int64(3),
+	}
+
+	person := &model.Person{
+		FirstName: "Jon",
+		LastName:  "Doe",
+		Type:      "student",
+		Age:       21,
+		Courses:   []model.Course{*c1, *c2, *c3},
+	}
+	_, err = dao.Create(person)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	person = &model.Person{
+		FirstName: "jane",
+		LastName:  "Ed",
+		Type:      "professor",
+		Age:       50,
+		Courses:   []model.Course{*c1, *c2},
+	}
+	_, err = dao.Create(person)
+	if err != nil {
+		log.Panic(err)
+	}
+	person = &model.Person{
+		FirstName: "Jonny",
+		LastName:  "Do",
+		Type:      "student",
+		Age:       18,
+		Courses:   []model.Course{*c2, *c3},
+	}
+	_, err = dao.Create(person)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	_, err = dao.List()
+	if err != nil {
+		log.Panic(err)
+	}
+
 	return dao
+}
+
+func TestList(t *testing.T) {
+	tdb := setUpTestDbAndDaoPerson()
+	p, err := tdb.List()
+	if err != nil {
+		log.Panic(err)
+	}
+	assert.Equal(t, len(p), 3)
 }
 
 // func TestCreate(t *testing.T) {
@@ -99,19 +108,19 @@ func setUpTestDbAndDaoPerson() PersonDao {
 // 	assert.Nil(t, err)
 // }
 
-func TestGet(t *testing.T) {
-	// test Course retrieval
-	tdb := setUpTestDbAndDaoPerson()
+// func TestGet(t *testing.T) {
+// 	// test Course retrieval
+// 	tdb := setUpTestDbAndDaoPerson()
 
-	p, err := tdb.Get(nil, nil)
+// 	p, err := tdb.Get(nil, nil)
 
-	assert.Equal(t, len(p), 5)
-	assert.Nil(t, err)
+// 	assert.Equal(t, len(p), 5)
+// 	assert.Nil(t, err)
 
-	// course, err = tdb.Get(-1)
-	// assert.Nil(t, course)
-	// assert.NotNil(t, err)
-}
+// 	// course, err = tdb.Get(-1)
+// 	// assert.Nil(t, course)
+// 	// assert.NotNil(t, err)
+// }
 
 // func TestUpdate(t *testing.T) {
 // 	// test Course updating

@@ -1,16 +1,16 @@
 package controller
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
-	"example.com/model"
+	"github.com/doanlng/Go-Api-Tech-Challenge/internal/model"
+	"gorm.io/gorm"
 
-	"example.com/dal"
+	dal "github.com/doanlng/Go-Api-Tech-Challenge/internal/dal/person"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -18,7 +18,7 @@ type PersonController struct {
 	DAO dal.PersonDao
 }
 
-func NewPersonController(conn *sql.DB) *PersonController {
+func NewPersonController(conn *gorm.DB) *PersonController {
 	dao := dal.NewPersonDAO(conn)
 	return &PersonController{DAO: dao}
 }

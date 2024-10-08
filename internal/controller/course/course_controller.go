@@ -1,23 +1,23 @@
 package controller
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
-	"example.com/dal"
-	"example.com/model"
+	dal "github.com/doanlng/Go-Api-Tech-Challenge/internal/dal/course"
+	"github.com/doanlng/Go-Api-Tech-Challenge/internal/model"
 	"github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
 )
 
 type CourseController struct {
 	DAO dal.CourseDao
 }
 
-func NewCourseController(conn *sql.DB) *CourseController {
+func NewCourseController(conn *gorm.DB) *CourseController {
 	dao := dal.NewCourseDAO(conn)
 	return &CourseController{DAO: dao}
 }

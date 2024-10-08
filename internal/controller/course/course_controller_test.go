@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"example.com/dal"
-	"example.com/model"
+	dal "github.com/doanlng/Go-Api-Tech-Challenge/internal/dal/course"
+	"github.com/doanlng/Go-Api-Tech-Challenge/internal/model"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
