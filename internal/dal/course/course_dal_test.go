@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setUpTestDbAndDao() CourseDao {
+func setUpTestDbAndDaoCourse() CourseDao {
 	// Create in memory database
 	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
@@ -41,9 +41,9 @@ func setUpTestDbAndDao() CourseDao {
 	return dao
 }
 
-func TestList(t *testing.T) {
+func TestListCourse(t *testing.T) {
 	// test list function
-	tdb := setUpTestDbAndDao()
+	tdb := setUpTestDbAndDaoCourse()
 
 	courses, err := tdb.List()
 
@@ -51,9 +51,9 @@ func TestList(t *testing.T) {
 	assert.Equal(t, len(courses), 3)
 }
 
-func TestCreate(t *testing.T) {
+func TestCreateCourse(t *testing.T) {
 	// test course creation
-	tdb := setUpTestDbAndDao()
+	tdb := setUpTestDbAndDaoCourse()
 
 	course := &model.Course{
 		Name: "TestCourse4",
@@ -70,9 +70,9 @@ func TestCreate(t *testing.T) {
 	assert.Equal(t, len(newCourses), 4)
 }
 
-func TestGet(t *testing.T) {
+func TestGetCourse(t *testing.T) {
 	// test Course retrieval
-	tdb := setUpTestDbAndDao()
+	tdb := setUpTestDbAndDaoCourse()
 
 	course, err := tdb.Get(1)
 
@@ -85,9 +85,9 @@ func TestGet(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestUpdate(t *testing.T) {
+func TestUpdateCourse(t *testing.T) {
 	// test Course updating
-	tdb := setUpTestDbAndDao()
+	tdb := setUpTestDbAndDaoCourse()
 
 	c := &model.Course{
 		Name: "NewTestNameForCourse",
@@ -103,9 +103,9 @@ func TestUpdate(t *testing.T) {
 
 }
 
-func TestDelete(t *testing.T) {
+func TestDeleteCourse(t *testing.T) {
 	// test course Deletions
-	tdb := setUpTestDbAndDao()
+	tdb := setUpTestDbAndDaoCourse()
 
 	id, err := tdb.Delete(2)
 	assert.Equal(t, id, int64(2))

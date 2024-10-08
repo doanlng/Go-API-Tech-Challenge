@@ -149,7 +149,7 @@ func (db *PersonDaoImpl) Delete(name string) (int64, error) {
 	st, err := db.DB.Query(s, fn, ln)
 	if err != nil {
 		log.Fatal(err)
-		return -1, errors.New("panic querying for person to delete")
+		return -1, errors.New("panic querying for person (delete)")
 	}
 
 	var id int64
