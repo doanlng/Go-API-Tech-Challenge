@@ -26,7 +26,7 @@ func NewPersonController(conn *gorm.DB) *PersonController {
 func (pc PersonController) Routes() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/", pc.Get)
+	r.Get("/", pc.List)
 	r.Post("/", pc.Create)
 
 	r.Route("/{name}", func(r chi.Router) {
@@ -36,6 +36,20 @@ func (pc PersonController) Routes() chi.Router {
 	})
 
 	return r
+}
+func (pc PersonController) List(w http.ResponseWriter, r *http.Request) {
+	courses, err := pc.DAO.List()
+	if err != nil {
+		http.Error(w, "Issue at Controller level list", http.StatusInternalServerError)
+	}
+
+	result, err := json.Marshal(courses)
+	if err != nil {
+		http.Error(w, "failed to encode courses to JSON", http.StatusInternalServerError)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(result)
 }
 
 func (pc PersonController) Get(w http.ResponseWriter, r *http.Request) {
@@ -139,7 +153,7 @@ func (pc PersonController) Update(w http.ResponseWriter, r *http.Request) {
 func (pc PersonController) Delete(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 
-	idDel, err := pc.DAO.Delete(name)
+	idDel, err := pc.DAO.Delete(&name)
 	if err != nil {
 		http.Error(w, "Error Finding Person To Delete", http.StatusNotFound)
 		return

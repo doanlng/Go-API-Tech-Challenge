@@ -4,6 +4,7 @@ import (
 	"log"
 	"testing"
 
+	dal "github.com/doanlng/Go-Api-Tech-Challenge/internal/dal/course"
 	"github.com/doanlng/Go-Api-Tech-Challenge/internal/model"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
@@ -11,7 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func setUpTestDbAndDaoPerson() PersonDao {
+func setUpTestDbAndDaoPerson() (PersonDao, dal.CourseDao) {
 	// Create in memory database
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
@@ -23,6 +24,7 @@ func setUpTestDbAndDaoPerson() PersonDao {
 	}
 
 	dao := NewPersonDAO(db)
+	cdao := dal.NewCourseDAO(db)
 
 	c1 := &model.Course{
 		Name: "C1",
@@ -38,6 +40,10 @@ func setUpTestDbAndDaoPerson() PersonDao {
 		Name: "C3",
 		ID:   int64(3),
 	}
+
+	cdao.Create(c1)
+	cdao.Create(c2)
+	cdao.Create(c3)
 
 	person := &model.Person{
 		FirstName: "Jon",
@@ -74,16 +80,11 @@ func setUpTestDbAndDaoPerson() PersonDao {
 		log.Panic(err)
 	}
 
-	_, err = dao.List()
-	if err != nil {
-		log.Panic(err)
-	}
-
-	return dao
+	return dao, cdao
 }
 
 func TestList(t *testing.T) {
-	tdb := setUpTestDbAndDaoPerson()
+	tdb, _ := setUpTestDbAndDaoPerson()
 	p, err := tdb.List()
 	if err != nil {
 		log.Panic(err)
@@ -91,71 +92,97 @@ func TestList(t *testing.T) {
 	assert.Equal(t, len(p), 3)
 }
 
-// func TestCreate(t *testing.T) {
-// 	// test course creation
-// 	tdb := setUpTestDbAndDaoPerson()
+func TestCreate(t *testing.T) {
+	// test course creation
+	tdb, cdb := setUpTestDbAndDaoPerson()
 
-// 	person := &model.Person{
-// 		FirstName: "Jon",
-// 		LastName:  "Doe",
-// 		Type:      "student",
-// 		Age:       1000,
-// 		Courses:   []int64{1, 2, 3},
-// 	}
+	nc := &model.Course{
+		Name: "New Course",
+		ID:   int64(4),
+	}
 
-// 	np, err := tdb.Create(person)
-// 	log.Println(np)
-// 	assert.Nil(t, err)
-// }
+	person := &model.Person{
+		FirstName: "Steve",
+		LastName:  "Jobs",
+		Type:      "professor",
+		Age:       30,
+		Courses:   []model.Course{*nc},
+	}
 
-// func TestGet(t *testing.T) {
-// 	// test Course retrieval
-// 	tdb := setUpTestDbAndDaoPerson()
+	np, err := tdb.Create(person)
+	assert.NotNil(t, err) //course enrolled in doesn't exist
+	assert.Equal(t, int64(-1), np)
 
-// 	p, err := tdb.Get(nil, nil)
+	cdb.Create(nc)
+	np, err = tdb.Create(person)
+	assert.Nil(t, err) //course enrolled in doesn't exist
+	assert.Equal(t, np, int64(4))
 
-// 	assert.Equal(t, len(p), 5)
-// 	assert.Nil(t, err)
+	p, err := tdb.List()
+	if err != nil {
+		log.Panic(err)
+	}
+	assert.Equal(t, len(p), int64(4))
 
-// 	// course, err = tdb.Get(-1)
-// 	// assert.Nil(t, course)
-// 	// assert.NotNil(t, err)
-// }
+}
 
-// func TestUpdate(t *testing.T) {
-// 	// test Course updating
-// 	tdb := setUpTestDbAndDaoPerson()
+func TestGet(t *testing.T) {
+	// test Course retrieval
+	tdb, _ := setUpTestDbAndDaoPerson()
 
-// 	c := &model.Course{
-// 		Name: "NewTestNameForCourse",
-// 	}
-// 	nc, err := tdb.Update(c, 1)
-// 	assert.Equal(t, nc.ID, 1)
-// 	assert.Equal(t, nc.Name, "NewTestNameForCourse")
-// 	assert.Nil(t, err)
+	name := "Jon Doe"
+	p, err := tdb.Get(&name, nil)
+	assert.Equal(t, p.ID, int64(1))
+	assert.Equal(t, p.FirstName, "Jon")
+	assert.Equal(t, p.LastName, "Doe")
+	assert.Equal(t, len(p.Courses), 3)
+	assert.Nil(t, err)
 
-// 	nc, err = tdb.Update(c, 100)
-// 	assert.Nil(t, nc)
-// 	assert.NotNil(t, err)
+	var age int64 = 18
+	p2, err := tdb.Get(nil, &age)
+	assert.Equal(t, p2.ID, int64(3))
+	assert.Equal(t, p2.FirstName, "Jonny")
 
-// }
+	assert.Nil(t, err)
+}
 
-// func TestDelete(t *testing.T) {
-// 	// test course Deletions
-// 	tdb := setUpTestDbAndDaoPerson()
+func TestUpdate(t *testing.T) {
+	// test Course updating
+	tdb, _ := setUpTestDbAndDaoPerson()
 
-// 	id, err := tdb.Delete(2)
-// 	assert.Equal(t, id, int64(2))
-// 	assert.Nil(t, err)
+	p := &model.Person{
+		FirstName: "Gormy",
+		LastName:  "Gorm",
+	}
 
-// 	courses, err := tdb.List()
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+	var name = "Jon Doe"
+	up, err := tdb.Update(p, &name)
+	assert.Nil(t, err)
+	assert.Equal(t, up.FirstName, "Gormy")
+	assert.Equal(t, up.LastName, "Gorm")
 
-// 	assert.Equal(t, len(courses), 2)
+	var nName = "Gormy Gorm"
+	np, err := tdb.Get(&nName, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, np.Age, 21)
+	assert.Equal(t, np.ID, int64(1))
 
-// 	id, err = tdb.Delete(100)
-// 	assert.Equal(t, id, int64(-1))
-// 	assert.NotNil(t, err)
-// }
+	var noName = "name nothere"
+	up, err = tdb.Update(p, &noName)
+	assert.NotNil(t, err)
+	assert.Nil(t, up)
+}
+
+func TestDelete(t *testing.T) {
+	tdb, _ := setUpTestDbAndDaoPerson()
+
+	var name = "Jon Doe"
+	p, err := tdb.Delete(&name)
+	assert.Equal(t, p, int64(1))
+	assert.Nil(t, err)
+
+	var noName = "name nothere"
+	p2, err := tdb.Delete(&noName)
+	assert.Equal(t, p2, int64(-1))
+	assert.NotNil(t, err)
+}

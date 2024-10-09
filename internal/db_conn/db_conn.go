@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/doanlng/Go-Api-Tech-Challenge/internal/model"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
@@ -16,8 +17,6 @@ type dbConn struct{}
 func NewDbConn() *dbConn {
 	return &dbConn{}
 }
-
-var db *gorm.DB
 
 type DBConfig struct {
 	Host     string
@@ -49,6 +48,7 @@ func (conn dbConn) Connect() *gorm.DB {
 	if err != nil {
 		log.Fatal(err)
 	}
+	gormDB.AutoMigrate(&model.Course{}, &model.Person{}, &model.PersonCourse{})
 
 	fmt.Println("Connected!")
 

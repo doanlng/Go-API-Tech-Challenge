@@ -31,28 +31,24 @@ func (db *PersonDaoImpl) List() ([]*model.Person, error) {
 }
 
 func (db *PersonDaoImpl) Get(name *string, age *int64) (*model.Person, error) {
-	var fn, ln *string
+
+	var p = &model.Person{}
+	q := db.DB.Debug().Preload("Courses")
 	if name != nil {
 		first, last := nameHelper(*name)
 		if first == "" && last == "" {
 			return nil, errors.New("unable to parse string name")
 		}
-		fn = &first
-		ln = &last
+
+		q = q.Where("first_name = ? AND last_name = ?", first, last)
+
 	}
 
-	var a *int
 	if age != nil {
-		n := int(*age)
-		a = &n
+		q = q.Where("age = ?", *age)
 	}
 
-	var p = &model.Person{
-		FirstName: *fn,
-		LastName:  *ln,
-		Age:       *a,
-	}
-	res := db.DB.Preload("Courses").First(p)
+	res := q.First(&p)
 	if res.Error != nil || res.RowsAffected != 1 {
 		return nil, errors.New("error retrieving course, could it not exist?")
 	}
@@ -61,12 +57,8 @@ func (db *PersonDaoImpl) Get(name *string, age *int64) (*model.Person, error) {
 }
 
 func (db *PersonDaoImpl) Create(person *model.Person) (int64, error) {
-	res := db.DB.Save(&person)
-	if res.Error != nil || res.RowsAffected != 1 {
-		return -1, errors.New("error creating a person")
-	}
-
 	for _, course := range person.Courses {
+
 		//check if the course exists
 		if err := db.DB.First(&course, course.ID).Error; err != nil {
 			return -1, errors.New("tried to create a person enrolled in a nonexistent course")
@@ -83,15 +75,49 @@ func (db *PersonDaoImpl) Create(person *model.Person) (int64, error) {
 		}
 
 	}
+	res := db.DB.Save(&person)
+	if res.Error != nil || res.RowsAffected != 1 {
+		return -1, errors.New("error creating a person")
+	}
 	return person.ID, nil
 }
 
-func (db *PersonDaoImpl) Update(Person *model.Person, name *string) (*model.Person, error) {
-	return nil, nil
+func (db *PersonDaoImpl) Update(person *model.Person, name *string) (*model.Person, error) {
+
+	first, last := nameHelper(*name)
+	if first == "" && last == "" {
+		return nil, errors.New("invalid name passed in request")
+	}
+	if f := db.DB.Debug().First(&model.Person{}, "first_name = ? AND last_name = ?", first, last); f.Error != nil {
+		return nil, errors.New("couldn't find person, is this a person in the database?")
+	}
+
+	var p2 = &model.Person{}
+	if err := db.DB.Model(p2).Where("first_name = ? AND last_name = ?", first, last).Updates(person); err.Error != nil && err.RowsAffected != 1 {
+		return nil, errors.New("error updating person")
+	}
+
+	return person, nil
 }
 
-func (db *PersonDaoImpl) Delete(name string) (int64, error) {
-	return -1, nil
+func (db *PersonDaoImpl) Delete(name *string) (int64, error) {
+
+	first, last := nameHelper(*name)
+	if first == "" && last == "" {
+		return -1, errors.New("invalid name passed in request")
+	}
+
+	var p model.Person
+
+	if err := db.DB.Where("first_name = ? AND last_name = ?", first, last).First(&p).Error; err != nil {
+		return -1, errors.New("couldn't find person, is this a person in the database?")
+	}
+
+	if err := db.DB.Delete(&p); err.Error != nil || err.RowsAffected != 1 {
+		return -1, errors.New("error deleting person")
+	}
+
+	return p.ID, nil
 }
 
 func nameHelper(s string) (string, string) {
@@ -107,17 +133,6 @@ func nameHelper(s string) (string, string) {
 	}
 
 	return firstName, lastName
-}
-
-func insertCourses(id int64, cids []int64) string {
-	tups := []string{}
-	for _, course := range cids {
-		tups = append(tups, fmt.Sprintf("(%d, %d)", id, course))
-	}
-	var vals = strings.Join(tups, ", ")
-	var s = `INSERT INTO person_course (person_id, course_id) VALUES ` + vals
-
-	return s
 }
 
 func splitWhitespace(str string) []string {
